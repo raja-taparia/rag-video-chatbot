@@ -1,0 +1,104 @@
+# Docker Compose for complete RAG system with all dependencies
+
+version: '3.8'
+
+services:
+  # Vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL for metadata (optional)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rag_chatbot_db}
+      POSTGRES_USER: ${POSTGRES_USER:-rag_chatbot_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag_chatbot_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # RAG Chatbot FastAPI
+  rag-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      LLM_MODEL: ${LLM_MODEL:-mistral}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-rag_chatbot_db}
+      POSTGRES_USER: ${POSTGRES_USER:-rag_chatbot_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: python api/main.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Celery worker for async tasks (optional)
+  celery-worker:
+    build: .
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      QDRANT_HOST: qdrant
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - qdrant
+    volumes:
+      - ./data:/app/data
+    command: celery -A src.tasks worker --loglevel=info
+    profiles: ["worker"]
+
+volumes:
+  qdrant_data:
+  redis_data:
+  postgres_data:
+
+networks:
+  default:
+    name: rag-network
