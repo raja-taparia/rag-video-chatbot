@@ -1,7 +1,7 @@
 # Data models using Pydantic for type safety and validation
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 
@@ -79,5 +79,13 @@ class RAGResponse(BaseModel):
     query: str
     response: dict  # VideoAnswer or PDFAnswer or NoAnswer
     processing_time_ms: float
-    model_used: Optional[str] = None
+    llm_model: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class QueryRequest(BaseModel):
+    question: str
+    top_k: Optional[int] = 3
+
+class QueryResponse(BaseModel):
+    query: str
+    response: Optional[VideoAnswer | PDFAnswer | NoAnswer] = None

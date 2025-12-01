@@ -16,7 +16,7 @@ class OllamaConfig:
     base_url: str
     embedding_model: str
     llm_model: str
-    embedding_dim: int = 768
+    embedding_dim: int = 384
     request_timeout: int = 120
 
 
@@ -84,7 +84,9 @@ def load_config() -> Config:
     # Ollama configuration
     ollama_config = OllamaConfig(
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        embedding_model=os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
+        # Default embedding model switched to a local sentence-transformers model
+        # for reliable, CPU-friendly embeddings used across PDFs and transcripts.
+        embedding_model=os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
         llm_model=os.getenv("LLM_MODEL", "mistral"),
     )
     
@@ -105,7 +107,7 @@ def load_config() -> Config:
             port=int(os.getenv("POSTGRES_PORT", "5432")),
             database=os.getenv("POSTGRES_DB", "rag_chatbot_db"),
             user=os.getenv("POSTGRES_USER", "rag_chatbot_user"),
-            password=os.getenv("POSTGRES_PASSWORD", ""),
+            password=os.getenv("POSTGRES_PASSWORD", "rag_password"),
         )
     
     # RAG pipeline configuration
@@ -113,7 +115,7 @@ def load_config() -> Config:
         chunk_size=int(os.getenv("CHUNK_SIZE", "512")),
         chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "128")),
         video_relevance_threshold=float(os.getenv("VIDEO_RELEVANCE_THRESHOLD", "0.7")),
-        pdf_relevance_threshold=float(os.getenv("PDF_RELEVANCE_THRESHOLD", "0.6")),
+        pdf_relevance_threshold=float(os.getenv("PDF_RELEVANCE_THRESHOLD", "0.3")),
         top_k_video=int(os.getenv("TOP_K_VIDEO", "3")),
         top_k_pdf=int(os.getenv("TOP_K_PDF", "3")),
         max_context_length=int(os.getenv("MAX_CONTEXT_LENGTH", "2048")),

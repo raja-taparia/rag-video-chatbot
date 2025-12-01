@@ -6,6 +6,7 @@ This script creates sample video transcripts and PDF files in the data/ director
 
 import json
 from pathlib import Path
+import reportlab
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
@@ -16,7 +17,7 @@ def create_mock_video_transcripts():
     videos_dir = Path("data/videos")
     videos_dir.mkdir(parents=True, exist_ok=True)
     
-    # Video 1: Kubernetes Setup Tutorial
+    # Video 1: Kubernetes Setup
     video1 = {
         "video_id": "VIDEO_KUBERNETES_SETUP",
         "title": "How to Setup Kubernetes Cluster",

@@ -1,0 +1,328 @@
+{
+  "video_id": "VIDEO_KUBERNETES_SETUP",
+  "title": "How to Setup Kubernetes Cluster",
+  "pdf_reference": "kubernetes_guide.pdf",
+  "duration_seconds": 300,
+  "video_transcripts": [
+    {
+      "id": 0,
+      "timestamp": 0.0,
+      "word": "Hello"
+    },
+    {
+      "id": 1,
+      "timestamp": 0.5,
+      "word": "everyone"
+    },
+    {
+      "id": 2,
+      "timestamp": 1.0,
+      "word": "today"
+    },
+    {
+      "id": 3,
+      "timestamp": 1.5,
+      "word": "I"
+    },
+    {
+      "id": 4,
+      "timestamp": 2.0,
+      "word": "will"
+    },
+    {
+      "id": 5,
+      "timestamp": 2.5,
+      "word": "teach"
+    },
+    {
+      "id": 6,
+      "timestamp": 3.0,
+      "word": "you"
+    },
+    {
+      "id": 7,
+      "timestamp": 3.5,
+      "word": "how"
+    },
+    {
+      "id": 8,
+      "timestamp": 4.0,
+      "word": "to"
+    },
+    {
+      "id": 9,
+      "timestamp": 4.5,
+      "word": "setup"
+    },
+    {
+      "id": 10,
+      "timestamp": 5.0,
+      "word": "Kubernetes"
+    },
+    {
+      "id": 11,
+      "timestamp": 5.5,
+      "word": "cluster"
+    },
+    {
+      "id": 12,
+      "timestamp": 6.0,
+      "word": "First"
+    },
+    {
+      "id": 13,
+      "timestamp": 6.5,
+      "word": "you"
+    },
+    {
+      "id": 14,
+      "timestamp": 7.0,
+      "word": "need"
+    },
+    {
+      "id": 15,
+      "timestamp": 7.5,
+      "word": "to"
+    },
+    {
+      "id": 16,
+      "timestamp": 8.0,
+      "word": "install"
+    },
+    {
+      "id": 17,
+      "timestamp": 8.5,
+      "word": "Docker"
+    },
+    {
+      "id": 18,
+      "timestamp": 9.0,
+      "word": "on"
+    },
+    {
+      "id": 19,
+      "timestamp": 9.5,
+      "word": "your"
+    },
+    {
+      "id": 20,
+      "timestamp": 10.0,
+      "word": "server"
+    },
+    {
+      "id": 21,
+      "timestamp": 10.5,
+      "word": "Then"
+    },
+    {
+      "id": 22,
+      "timestamp": 11.0,
+      "word": "enable"
+    },
+    {
+      "id": 23,
+      "timestamp": 11.5,
+      "word": "kubeadm"
+    },
+    {
+      "id": 24,
+      "timestamp": 12.0,
+      "word": "kubectl"
+    },
+    {
+      "id": 25,
+      "timestamp": 12.5,
+      "word": "and"
+    },
+    {
+      "id": 26,
+      "timestamp": 13.0,
+      "word": "kubelet"
+    },
+    {
+      "id": 27,
+      "timestamp": 13.5,
+      "word": "Make"
+    },
+    {
+      "id": 28,
+      "timestamp": 14.0,
+      "word": "sure"
+    },
+    {
+      "id": 29,
+      "timestamp": 14.5,
+      "word": "your"
+    },
+    {
+      "id": 30,
+      "timestamp": 15.0,
+      "word": "server"
+    },
+    {
+      "id": 31,
+      "timestamp": 15.5,
+      "word": "has"
+    },
+    {
+      "id": 32,
+      "timestamp": 16.0,
+      "word": "at"
+    },
+    {
+      "id": 33,
+      "timestamp": 16.5,
+      "word": "least"
+    },
+    {
+      "id": 34,
+      "timestamp": 17.0,
+      "word": "two"
+    },
+    {
+      "id": 35,
+      "timestamp": 17.5,
+      "word": "CPUs"
+    },
+    {
+      "id": 36,
+      "timestamp": 18.0,
+      "word": "and"
+    },
+    {
+      "id": 37,
+      "timestamp": 18.5,
+      "word": "two"
+    },
+    {
+      "id": 38,
+      "timestamp": 19.0,
+      "word": "gigabytes"
+    },
+    {
+      "id": 39,
+      "timestamp": 19.5,
+      "word": "of"
+    },
+    {
+      "id": 40,
+      "timestamp": 20.0,
+      "word": "RAM"
+    },
+    {
+      "id": 41,
+      "timestamp": 20.5,
+      "word": "Next"
+    },
+    {
+      "id": 42,
+      "timestamp": 21.0,
+      "word": "initialize"
+    },
+    {
+      "id": 43,
+      "timestamp": 21.5,
+      "word": "the"
+    },
+    {
+      "id": 44,
+      "timestamp": 22.0,
+      "word": "control"
+    },
+    {
+      "id": 45,
+      "timestamp": 22.5,
+      "word": "plane"
+    },
+    {
+      "id": 46,
+      "timestamp": 23.0,
+      "word": "with"
+    },
+    {
+      "id": 47,
+      "timestamp": 23.5,
+      "word": "kubeadm"
+    },
+    {
+      "id": 48,
+      "timestamp": 24.0,
+      "word": "init"
+    },
+    {
+      "id": 49,
+      "timestamp": 24.5,
+      "word": "This"
+    },
+    {
+      "id": 50,
+      "timestamp": 25.0,
+      "word": "will"
+    },
+    {
+      "id": 51,
+      "timestamp": 25.5,
+      "word": "generate"
+    },
+    {
+      "id": 52,
+      "timestamp": 26.0,
+      "word": "a"
+    },
+    {
+      "id": 53,
+      "timestamp": 26.5,
+      "word": "join"
+    },
+    {
+      "id": 54,
+      "timestamp": 27.0,
+      "word": "token"
+    },
+    {
+      "id": 55,
+      "timestamp": 27.5,
+      "word": "for"
+    },
+    {
+      "id": 56,
+      "timestamp": 28.0,
+      "word": "worker"
+    },
+    {
+      "id": 57,
+      "timestamp": 28.5,
+      "word": "nodes"
+    },
+    {
+      "id": 58,
+      "timestamp": 29.0,
+      "word": "Copy"
+    },
+    {
+      "id": 59,
+      "timestamp": 29.5,
+      "word": "this"
+    },
+    {
+      "id": 60,
+      "timestamp": 30.0,
+      "word": "token"
+    },
+    {
+      "id": 61,
+      "timestamp": 30.5,
+      "word": "to"
+    },
+    {
+      "id": 62,
+      "timestamp": 31.0,
+      "word": "your"
+    },
+    {
+      "id": 63,
+      "timestamp": 31.5,
+      "word": "clipboard"
+    }
+  ]
+}

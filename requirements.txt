@@ -5,7 +5,8 @@ python-dotenv==1.0.0
 # Embeddings and LLM
 requests==2.31.0
 ollama==0.3.0
-# Updating from ollama==0.1.0 to 0.3.0
+# Updating from ollama==0.1.0 to 0.3.0.. Default ollama installed in cmd is 0.13.0
+sentence-transformers>=2.2.2
 
 # Vector database
 qdrant-client==1.16.0
@@ -13,6 +14,7 @@ qdrant-client==1.16.0
 
 # PDF processing
 PyPDF2==3.0.1
+reportlab==4.4.5
 
 # FastAPI
 fastapi==0.109.0
@@ -46,3 +48,15 @@ mypy==1.7.1
 # Development
 ipython==8.18.1
 jupyter==1.0.0
+
+# Video processing
+yt-dlp==2025.10.22              # YouTube download
+openai-whisper==20231117      # Speech-to-text
+moviepy==1.0.3                # Video processing
+
+# PDF processing
+google-search-results==2.4.2   # Search API
+
+# Additional tools
+google-api-python-client==2.108.0
+numpy==1.24.3

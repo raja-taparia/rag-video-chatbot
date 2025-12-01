@@ -184,29 +184,91 @@ class QdrantVectorStore:
             List of relevant chunks with scores
         """
         try:
-            results = self.client.search(
+            results = self._perform_search(
                 collection_name=self.VIDEO_COLLECTION,
                 query_vector=query_embedding,
-                limit=top_k,
+                top_k=top_k,
                 score_threshold=threshold,
             )
-            
+
+            # qdrant-client may return a QueryResponse object with a `.points`
+            # attribute. Normalize to a plain iterable of point-like objects.
+            if hasattr(results, 'points'):
+                results = results.points
+
             output = []
             for result in results:
+                payload = None
+                score = None
+
+                # normalize different result shapes from qdrant-client versions
+                if hasattr(result, "payload"):
+                    payload = result.payload
+                    score = getattr(result, "score", None)
+                    # Some client versions return `distance` instead of `score`.
+                    if score is None and hasattr(result, "distance"):
+                        score = getattr(result, "distance")
+                elif isinstance(result, dict) and "payload" in result:
+                    payload = result["payload"]
+                    score = result.get("score") if result.get("score") is not None else result.get("distance")
+                elif isinstance(result, tuple) and len(result) >= 2:
+                    # (PointStruct/Dict, score)
+                    payload = getattr(result[0], "payload", result[0])
+                    score = result[1]
+                else:
+                    payload = result
+
+                if not payload:
+                    continue
+
+                # If payload is a JSON string, try to parse it. Some client/server
+                # setups may return serialized payloads.
+                if isinstance(payload, str):
+                    try:
+                        payload = json.loads(payload)
+                    except Exception:
+                        logger.debug(f"Payload is a string but not JSON: {payload}")
+                        # keep as-is (will be skipped below if not dict)
+
+                if not isinstance(payload, dict):
+                    logger.debug(f"Unexpected payload type from Qdrant search: {type(payload)}; raw result: {result}")
+                    continue
+
+                # Normalize score/distance to a similarity-like score in [0,1].
+                normalized_score = None
+                try:
+                    if score is None:
+                        normalized_score = None
+                    else:
+                        # Heuristic normalization:
+                        # - If score in [-1,1], assume it's cosine similarity already.
+                        # - If score is non-negative and >1, assume it's a distance; convert via 1/(1+distance).
+                        if -1.0 <= float(score) <= 1.0:
+                            normalized_score = float(score)
+                        else:
+                            dist = float(score)
+                            # map distance -> similarity in (0,1]
+                            if 0.0 <= dist <= 2.0:
+                                normalized_score = max(0.0, 1.0 - dist)
+                            else:
+                                normalized_score = 1.0 / (1.0 + dist)
+                except Exception:
+                    normalized_score = None
+
                 output.append({
-                    'chunk_id': result.payload['chunk_id'],
-                    'video_id': result.payload['video_id'],
-                    'start_token_id': result.payload['start_token_id'],
-                    'end_token_id': result.payload['end_token_id'],
-                    'start_timestamp': result.payload['start_timestamp'],
-                    'end_timestamp': result.payload['end_timestamp'],
-                    'text': result.payload['text'],
-                    'score': result.score,
+                    'chunk_id': payload.get('chunk_id'),
+                    'video_id': payload.get('video_id'),
+                    'start_token_id': payload.get('start_token_id'),
+                    'end_token_id': payload.get('end_token_id'),
+                    'start_timestamp': payload.get('start_timestamp'),
+                    'end_timestamp': payload.get('end_timestamp'),
+                    'text': payload.get('text'),
+                    'score': normalized_score if normalized_score is not None else score,
                 })
-            
+
             logger.info(f"Found {len(output)} relevant video chunks (threshold={threshold})")
             return output
-            
+
         except Exception as e:
             logger.error(f"Error searching video collection: {e}")
             return []
@@ -229,30 +291,159 @@ class QdrantVectorStore:
             List of relevant paragraphs with scores
         """
         try:
-            results = self.client.search(
+            results = self._perform_search(
                 collection_name=self.PDF_COLLECTION,
                 query_vector=query_embedding,
-                limit=top_k,
+                top_k=top_k,
                 score_threshold=threshold,
             )
-            
+
+            if hasattr(results, 'points'):
+                results = results.points
+
             output = []
             for result in results:
+                payload = None
+                score = None
+
+                if hasattr(result, "payload"):
+                    payload = result.payload
+                    score = getattr(result, "score", None)
+                    if score is None and hasattr(result, "distance"):
+                        score = getattr(result, "distance")
+                elif isinstance(result, dict) and "payload" in result:
+                    payload = result["payload"]
+                    score = result.get("score") if result.get("score") is not None else result.get("distance")
+                elif isinstance(result, tuple) and len(result) >= 2:
+                    payload = getattr(result[0], "payload", result[0])
+                    score = result[1]
+                else:
+                    payload = result
+
+                if not payload:
+                    continue
+
+                if isinstance(payload, str):
+                    try:
+                        payload = json.loads(payload)
+                    except Exception:
+                        logger.debug(f"Payload is a string but not JSON: {payload}")
+
+                if not isinstance(payload, dict):
+                    logger.debug(f"Unexpected payload type from Qdrant search: {type(payload)}; raw result: {result}")
+                    continue
+
+                # Normalize score/distance to similarity-like score
+                normalized_score = None
+                try:
+                    if score is None:
+                        normalized_score = None
+                    else:
+                        if -1.0 <= float(score) <= 1.0:
+                            normalized_score = float(score)
+                        else:
+                            dist = float(score)
+                            if 0.0 <= dist <= 2.0:
+                                normalized_score = max(0.0, 1.0 - dist)
+                            else:
+                                normalized_score = 1.0 / (1.0 + dist)
+                except Exception:
+                    normalized_score = None
+
                 output.append({
-                    'para_id': result.payload['para_id'],
-                    'pdf_filename': result.payload['pdf_filename'],
-                    'page_number': result.payload['page_number'],
-                    'paragraph_index': result.payload['paragraph_index'],
-                    'text': result.payload['text'],
-                    'score': result.score,
+                    'para_id': payload.get('para_id'),
+                    'pdf_filename': payload.get('pdf_filename'),
+                    'page_number': payload.get('page_number'),
+                    'paragraph_index': payload.get('paragraph_index'),
+                    'text': payload.get('text'),
+                    'score': normalized_score if normalized_score is not None else score,
                 })
-            
+
             logger.info(f"Found {len(output)} relevant PDF paragraphs (threshold={threshold})")
             return output
-            
+
         except Exception as e:
             logger.error(f"Error searching PDF collection: {e}")
             return []
+
+    def _perform_search(self, collection_name: str, query_vector: List[float], top_k: int = 3, score_threshold: float = 0.0):
+        """Perform search using the installed qdrant-client method (handles API differences).
+
+        Tries common method names across qdrant-client versions and returns the raw results.
+        """
+        # Try the most common method names in order of preference
+        method_candidates = [
+            "search",
+            "search_points",
+            "search_collection",
+            "search_items",
+            "query_points",
+            "query",
+            "query_batch_points",
+        ]
+        # Expand search to check nested client implementations (some qdrant-client
+        # versions delegate calls to an internal _client). We'll attempt methods
+        # on `self.client`, `self.client._client` and `self.client.http`.
+        for name in method_candidates:
+            # candidate objects to inspect
+            candidates = [self.client]
+            if hasattr(self.client, "_client"):
+                candidates.append(getattr(self.client, "_client"))
+            if hasattr(self.client, "http"):
+                candidates.append(getattr(self.client, "http"))
+
+            for candidate in candidates:
+                if not hasattr(candidate, name):
+                    continue
+                method = getattr(candidate, name)
+                try:
+                    # attempt common argument names; handle slight API differences
+                    if name in ("query_points", "query"):
+                        logger.debug(f"Using Qdrant method {name} on {type(candidate).__name__}")
+                        return method(
+                            collection_name=collection_name,
+                            query=query_vector,
+                            limit=top_k,
+                            score_threshold=score_threshold,
+                            with_payload=True,
+                        )
+
+                    if name == "query_batch_points":
+                        logger.debug(f"Using Qdrant method {name} on {type(candidate).__name__} (batch)")
+                        # Wrap single query into a batch request
+                        from qdrant_client.conversions.common_types import QueryRequest
+
+                        req = QueryRequest(vector=query_vector, top=top_k)
+                        return method(collection_name=collection_name, requests=[req])
+
+                    # fallback to older search-like signatures
+                    logger.debug(f"Trying fallback call for {name} on {type(candidate).__name__}")
+                    return method(
+                        collection_name=collection_name,
+                        query_vector=query_vector,
+                        limit=top_k,
+                        score_threshold=score_threshold,
+                    )
+
+                except TypeError:
+                    # fallback to alternative parameter names used in some versions
+                    try:
+                        return method(
+                            collection_name=collection_name,
+                            vector=query_vector,
+                            top=top_k,
+                        )
+                    except Exception:
+                        # try positional call if signatures differ
+                        try:
+                            return method(collection_name, query_vector, top_k)
+                        except Exception as e:
+                            logger.debug(f"Method {name} exists but call failed: {e}")
+                except Exception as e:
+                    logger.debug(f"Method {name} call raised: {e}")
+
+        # If none of the methods worked, raise an informative error
+        raise AttributeError("No compatible search method found on QdrantClient")
     
     def clear_all(self) -> None:
         """Clear all collections (useful for reindexing)."""

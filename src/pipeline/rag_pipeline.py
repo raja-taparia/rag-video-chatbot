@@ -3,14 +3,13 @@
 import logging
 import time
 from typing import Dict, Any, Optional, List
-from dataclasses import asdict
 import json
 
 from src.config import Config
 from src.ingestion.video_loader import VideoTranscriptLoader
 from src.ingestion.pdf_loader import PDFLoader
 from src.ingestion.chunker import VideoChunker, PDFChunker
-from src.indexing.embeddings import OllamaEmbedder
+from src.indexing.embeddings import get_default_embedder
 from src.indexing.vector_store import QdrantVectorStore
 from src.retrieval.video_retriever import VideoRetriever
 from src.retrieval.pdf_retriever import PDFRetriever
@@ -37,7 +36,11 @@ class RAGPipeline:
         # Initialize components
         logger.info("Initializing RAG pipeline components...")
         
-        self.embedder = OllamaEmbedder(config.ollama)
+        # Use the default embedder (sentence-transformers by default);
+        # falls back to Ollama if sentence-transformers is not available.
+        self.embedder = get_default_embedder(config.ollama)
+        # Ensure the vector store expects the embedding dimensionality we will
+        # produce (sentence-transformers `all-MiniLM-L6-v2` -> 384 dims by default).
         self.vector_store = QdrantVectorStore(
             host=config.qdrant.host,
             port=config.qdrant.port,
@@ -136,7 +139,9 @@ class RAGPipeline:
         chunk_dicts = []
         for chunk, embedding in zip(chunks, embeddings):
             if embedding:
-                chunk_dict = asdict(chunk)
+                # `VideoChunk` is a Pydantic `BaseModel`.
+                # Use `model_dump()` (Pydantic v2) to convert to a dictionary representation.
+                chunk_dict = chunk.model_dump()
                 chunk_dict['embedding'] = embedding
                 chunk_dicts.append(chunk_dict)
         
@@ -223,9 +228,9 @@ class RAGPipeline:
                 processing_time = (time.time() - start_time) * 1000
                 return RAGResponse(
                     query=question,
-                    response=answer.dict(),
+                    response=answer.model_dump(),
                     processing_time_ms=processing_time,
-                    model_used=self.config.ollama.llm_model
+                    llm_model=self.config.ollama.llm_model
                 )
         
         # Fallback to PDF retrieval
@@ -244,9 +249,9 @@ class RAGPipeline:
                 processing_time = (time.time() - start_time) * 1000
                 return RAGResponse(
                     query=question,
-                    response=answer.dict(),
+                    response=answer.model_dump(),
                     processing_time_ms=processing_time,
-                    model_used=self.config.ollama.llm_model
+                    llm_model=self.config.ollama.llm_model
                 )
         
         # No answer found
@@ -260,6 +265,6 @@ class RAGPipeline:
         
         return RAGResponse(
             query=question,
-            response=no_answer.dict(),
+            response=no_answer.model_dump(),
             processing_time_ms=processing_time
         )

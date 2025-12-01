@@ -26,17 +26,24 @@ from src.config import load_config
 from src.logger import setup_logging
 from src.pipeline.rag_pipeline import RAGPipeline
 
+from src.ingestion.video_transcriber import VideoTranscriber
+from src.ingestion.pdf_finder import PDFFinder
 
 def main():
     """Main entry point."""
-    
+
+
     # Parse arguments
+
     parser = argparse.ArgumentParser(description="RAG Chatbot for Video Transcripts & PDFs")
     parser.add_argument("--index", action="store_true", help="Index all data")
     parser.add_argument("--full", action="store_true", help="Full reindex (clear existing)")
     parser.add_argument("--question", type=str, help="Ask a question")
     parser.add_argument("--batch-size", type=int, default=10, help="Batch size for logging during indexing")
-    
+    parser.add_argument("--transcribe-youtube", action="store_true", help="Transcribe YouTube videos")
+    parser.add_argument("--transcribe-local", action="store_true", help="Transcribe local videos")
+    parser.add_argument("--download-pdfs", action="store_true", help="Download PDFs based on ideas")
+
     args = parser.parse_args()
     
     # Load configuration
@@ -70,9 +77,31 @@ def main():
             print("\n" + "="*60)
             print("QUERY RESPONSE")
             print("="*60)
-            print(json.dumps(response.dict(), indent=2, default=str))
+            # Use Pydantic v2 `model_dump()` instead of deprecated `dict()`
+            print(json.dumps(response.model_dump(), indent=2, default=str))
             print("="*60 + "\n")
-            
+
+        elif args.transcribe_youtube:
+            transcriber = VideoTranscriber(
+                videos_input_dir=Path("data/videos/videos_input"),
+                output_dir=Path("data/videos")
+            )
+            transcriber.process_video_links_file(Path("video_links.txt"))
+
+        elif args.transcribe_local:
+            transcriber = VideoTranscriber(
+                videos_input_dir=Path("data/videos/videos_input"),
+                output_dir=Path("data/videos")
+            )
+            transcriber.process_local_videos_folder()
+
+        elif args.download_pdfs:
+            pdf_finder = PDFFinder(
+                output_dir=Path("data/pdfs"),
+                pdf_finder_file=Path("pdf_finder.txt")
+            )
+            pdf_finder.process_pdf_from_ideas_file()
+
         else:
             print("Usage:")
             print("  python main.py --index           # Index all data")
