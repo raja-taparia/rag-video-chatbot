@@ -4,7 +4,7 @@ import logging
 import requests
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, parse_qs, unquote
 import subprocess
 import json
 
@@ -39,9 +39,7 @@ class PDFFinder:
     
     def search_google_for_pdfs(self, query: str, num_results: int = 5) -> List[str]:
         """
-        Search Google for PDF files matching query.
-        
-        Note: This uses DuckDuckGo API (free) since Google requires authentication.
+        Search DuckDuckGo instead of Google as it doesn't require authentication for PDF files matching query.
         
         Args:
             query: Search query (e.g., "Kubernetes tutorial PDF")
@@ -70,12 +68,44 @@ class PDFFinder:
             response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
             
-            # Parse HTML for PDF links (simplified regex search)
+            # Parse HTML for PDF links
             import re
-            pdf_pattern = r'href=["\']([^"\']*\.pdf)'
-            matches = re.findall(pdf_pattern, response.text, re.IGNORECASE)
+            matches = []
             
-            pdf_urls = list(set(matches))[:num_results]  # Remove duplicates, limit results
+            # Look for DuckDuckGo redirect links (e.g., //duckduckgo.com/l/?uddg=...)
+            # These wrap the actual URL in a URL-encoded uddg parameter
+            redirect_pattern = r'//duckduckgo\.com/l/\?uddg=([^&\s"\']+)'
+            redirect_matches = re.findall(redirect_pattern, response.text, re.IGNORECASE)
+
+            # Decode the uddg parameter to get the actual URL
+            for encoded_url in redirect_matches:
+                try:
+                    decoded_url = unquote(encoded_url)
+                    # Check if it's a PDF link
+                    if decoded_url.lower().endswith('.pdf') and decoded_url.startswith('http'):
+                        matches.append(decoded_url)
+                except Exception as e:
+                    logger.debug(f"Failed to decode DuckDuckGo redirect: {e}")
+            
+            # Also look for direct PDF links that aren't wrapped in redirects
+            # (only if they don't start with duckduckgo redirect)
+            direct_pdf_pattern = r'href=["\'](?!//duckduckgo)([^"\']*\.pdf[^"\']*)["\']'
+            direct_matches = re.findall(direct_pdf_pattern, response.text, re.IGNORECASE)
+            for url in direct_matches:
+                # Clean up URL (remove query params if needed, but keep the PDF link)
+                if url.startswith('http') and not url.startswith('//duckduckgo'):
+                    matches.append(url)
+            
+            # Remove duplicates and filter valid URLs
+            pdf_urls = []
+            seen = set()
+            for url in matches:
+                # Only keep URLs that are valid and start with http
+                if url.startswith('http') and url not in seen:
+                    pdf_urls.append(url)
+                    seen.add(url)
+            
+            pdf_urls = pdf_urls[:num_results]  # Limit results
             
             logger.info(f"Found {len(pdf_urls)} PDF URLs for: {query}")
             
@@ -201,7 +231,6 @@ class PDFFinder:
                 
                 # Try OCR if available
                 try:
-                    import pytesseract
                     from PIL import Image
                     
                     logger.info("Attempting OCR...")

@@ -1,7 +1,7 @@
 # Data models using Pydantic for type safety and validation
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
 
@@ -88,4 +88,4 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     query: str
-    response: Optional[VideoAnswer | PDFAnswer | NoAnswer] = None
+    response: Optional[Union[VideoAnswer, PDFAnswer, NoAnswer]] = None

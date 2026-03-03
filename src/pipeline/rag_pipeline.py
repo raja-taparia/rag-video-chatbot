@@ -15,6 +15,7 @@ from src.retrieval.video_retriever import VideoRetriever
 from src.retrieval.pdf_retriever import PDFRetriever
 from src.generation.answer_generator import AnswerGenerator
 from src.models import VideoAnswer, PDFAnswer, NoAnswer, RAGResponse
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,10 @@ class RAGPipeline:
         
         self.video_chunker = VideoChunker(
             chunk_size=config.rag.chunk_size,
-            chunk_overlap=config.rag.chunk_overlap
+            chunk_overlap=config.rag.chunk_overlap,
+            pause_threshold=config.rag.pause_threshold,
+            min_chunk_size=config.rag.min_video_chunk_size,
+            max_chunk_size=config.rag.max_video_chunk_size,
         )
         
         self.video_retriever = VideoRetriever(self.vector_store, self.embedder)
@@ -125,6 +129,45 @@ class RAGPipeline:
         # Create chunks
         chunks = self.video_chunker.chunk_all(transcripts)
         stats['video_chunks_created'] = len(chunks)
+        # Create a video indexing JSON file that captures chunk boundaries with token counts
+        try:
+            log_start = time.time()
+            # Build map from video_id to token lists for token count calculation
+            video_tokens_map = {t.video_id: t.video_transcripts for t in transcripts}
+
+            log_entries = {
+                "comment": f"Video indexing log generated at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(log_start))}",
+                "videos": {}
+            }
+
+            for chunk in chunks:
+                vid = chunk.video_id
+                vid_entry = log_entries["videos"].setdefault(vid, [])
+
+                # Count tokens in this chunk
+                token_list = video_tokens_map.get(vid, [])
+                token_count = len([t.id for t in token_list if t.id >= chunk.start_token_id and t.id <= chunk.end_token_id])
+
+                vid_entry.append({
+                    "chunk_id": chunk.chunk_id,
+                    "start_time": chunk.start_timestamp,
+                    "end_time": chunk.end_timestamp,
+                    "start_token_id": chunk.start_token_id,
+                    "end_token_id": chunk.end_token_id,
+                    "token_count": token_count,
+                    "text": chunk.text,
+                })
+
+            # Ensure logs directory exists and write/truncate file
+            logs_dir = Path("logs")
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            log_path = logs_dir / "videoindexing.json"
+            with open(log_path, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(log_entries, indent=2, default=str))
+
+            logger.info(f"Wrote video indexing log to {log_path}")
+        except Exception:
+            logger.exception("Failed to write video indexing log")
         
         if not chunks:
             logger.warning("No chunks created from transcripts")

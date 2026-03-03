@@ -1,2 +1,1 @@
-Kubernetes tutorial for beginners including setup and installation steps
-Docker containerization best practices and real-world examples
+Pricing Strategy in Germany market

@@ -50,6 +50,10 @@ class RAGConfig:
     top_k_video: int  # number of video chunks to retrieve
     top_k_pdf: int  # number of PDF paragraphs to retrieve
     max_context_length: int  # max tokens in final answer
+    # Pause-based chunking configuration (for video transcripts)
+    pause_threshold: float  # seconds of silence that indicates a sentence boundary
+    min_video_chunk_size: int  # minimum tokens per video chunk (merge very short chunks)
+    max_video_chunk_size: int  # maximum tokens per video chunk (split very long segments)
 
 
 @dataclass
@@ -112,13 +116,16 @@ def load_config() -> Config:
     
     # RAG pipeline configuration
     rag_config = RAGConfig(
-        chunk_size=int(os.getenv("CHUNK_SIZE", "512")),
-        chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "128")),
-        video_relevance_threshold=float(os.getenv("VIDEO_RELEVANCE_THRESHOLD", "0.7")),
-        pdf_relevance_threshold=float(os.getenv("PDF_RELEVANCE_THRESHOLD", "0.3")),
+        chunk_size=int(os.getenv("CHUNK_SIZE", "256")),
+        chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "64")),
+        video_relevance_threshold=float(os.getenv("VIDEO_RELEVANCE_THRESHOLD", "0.65")),
+        pdf_relevance_threshold=float(os.getenv("PDF_RELEVANCE_THRESHOLD", "0.5")),
         top_k_video=int(os.getenv("TOP_K_VIDEO", "3")),
         top_k_pdf=int(os.getenv("TOP_K_PDF", "3")),
         max_context_length=int(os.getenv("MAX_CONTEXT_LENGTH", "2048")),
+        pause_threshold=float(os.getenv("PAUSE_THRESHOLD", "1.5")),
+        min_video_chunk_size=int(os.getenv("MIN_VIDEO_CHUNK_SIZE", "8")),
+        max_video_chunk_size=int(os.getenv("MAX_VIDEO_CHUNK_SIZE", "32")),
     )
     
     # Data paths

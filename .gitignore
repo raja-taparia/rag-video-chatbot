@@ -60,6 +60,8 @@ logs/
 # Data
 data/indices/
 data/metadata/
+data/pdfs/
+data/videos/
 *.db
 *.sqlite
 
