@@ -98,7 +98,7 @@ pip install -r requirements.txt
 Ensure Qdrant is running (local Docker example):
 
 ```bash
-docker run -p 6333:6333 qdrant/qdrant
+docker run -p 6334:6333 qdrant/qdrant
 ```
 
 Environment variables are read by `src/config.py`.  Defaults are tuned for local development.
@@ -109,7 +109,7 @@ Environment variables are read by `src/config.py`.  Defaults are tuned for local
 | EMBEDDING_MODEL | all-MiniLM-L6-v2 | embedding model name |
 | LLM_MODEL | mistral | LLM used by answer generator |
 | QDRANT_HOST | localhost | Qdrant hostname |
-| QDRANT_PORT | 6333 | Qdrant port |
+| QDRANT_PORT | 6334 | Qdrant port |
 | QDRANT_API_KEY | – | optional API key |
 | CHUNK_SIZE | 256 | tokens per chunk (base) |
 | CHUNK_OVERLAP | 64 | overlap between video chunks |
@@ -290,6 +290,3 @@ Logs are written to `logs/app.log` by default (see `src/logger.py`).
 - Replace `Whisper` with any preferred transcription service (e.g. OpenAI
   or local wav2vec models).
 
----
-
-© 2024‑2026 Generic RAG Chatbot Demo
